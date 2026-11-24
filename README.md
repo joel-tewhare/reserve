@@ -23,7 +23,8 @@ Requires Docker for local PostgreSQL.
 - Immediate-final, all-or-nothing ticket allocation
 - Genuine competing reservation requests under constrained concurrent demand
 - Oversubscribed demand (ticket demand may exceed available inventory); scarcity is resolved by allocation, not by blocking the experiment
-- No preferential treatment for the interactive booking request
+- Optional VIP booking policy (VIP-first orchestration); standard booking remains non-preferential
+- No preferential treatment under the standard booking policy
 - Reconciliation of successful reservation counts, allocated ticket quantities, and remaining inventory against PostgreSQL
 - Honest uncertain/transport outcomes (not equated with authoritative allocation failure)
 

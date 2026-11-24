@@ -14,6 +14,8 @@ export type ExperimentLimits = {
   maxTotalRequests: number
 }
 
+export type BookingPolicy = 'standard' | 'vip'
+
 export type PersonalOutcome =
   | {
       kind: 'interactive'
@@ -41,6 +43,7 @@ export type ExperimentResult = {
     userQuantity: number
     competingRequests: number
     concurrency: number
+    bookingPolicy: BookingPolicy
   }
   inventoryBefore: EventInventory
   inventoryAfter: EventInventory | null

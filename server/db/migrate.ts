@@ -17,6 +17,16 @@ export async function migrate(): Promise<void> {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
+    ALTER TABLE experiment_runs
+      ADD COLUMN IF NOT EXISTS booking_policy TEXT NOT NULL DEFAULT 'standard';
+
+    UPDATE experiment_runs
+    SET booking_policy = 'standard'
+    WHERE booking_policy IS NULL
+       OR booking_policy NOT IN ('standard', 'vip');
+
+
+
     CREATE TABLE IF NOT EXISTS reservations (
       id UUID PRIMARY KEY,
       event_id TEXT NOT NULL REFERENCES events(id),
