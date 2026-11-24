@@ -1,9 +1,7 @@
+import Console from './Console.tsx'
+
 function App() {
-  return (
-    <div className="app">
-      <h1 className="text-3xl font-bold underline">Reserve</h1>
-    </div>
-  )
+  return <Console />
 }
 
 export default App

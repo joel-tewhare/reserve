@@ -1,5 +1,5 @@
 Work: reserve-mvp
-Status: draft
+Status: accepted
 Related: docs/briefs/reserve.md, docs/architecture/system-model.md
 Supersedes: none
 

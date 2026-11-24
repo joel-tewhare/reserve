@@ -10,7 +10,7 @@
 # Build products
 /dist
 
-# Jest coverage report
+# Coverage
 /coverage/*
 
 # Dotenv env settings

@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: reserve
+      POSTGRES_PASSWORD: reserve
+      POSTGRES_DB: reserve
+    ports:
+      - '5432:5432'
+    volumes:
+      - reserve_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U reserve -d reserve']
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+volumes:
+  reserve_pgdata:

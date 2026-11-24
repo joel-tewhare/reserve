@@ -9,4 +9,11 @@ export default defineConfig({
       '/api': 'http://localhost:3000',
     },
   },
+  test: {
+    environment: 'node',
+    include: ['server/**/*.test.ts'],
+    fileParallelism: false,
+    hookTimeout: 30000,
+    testTimeout: 30000,
+  },
 })
