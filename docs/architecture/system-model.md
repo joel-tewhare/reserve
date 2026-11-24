@@ -3,9 +3,9 @@ Related: docs/briefs/reserve.md
 
 ## Intent
 
-Reserve demonstrates reliable concurrent allocation of finite ticket inventory through a single Engineering Console that feels like a real reservation journey and then reveals engineering evidence.
+Reserve demonstrates reliable concurrent allocation of finite ticket inventory through a staged ticket booking experience that feels approachable first, then optionally reveals engineering evidence.
 
-Success for the first version: a user can reserve under configured competing demand, receive an authoritative personal outcome (including correct rejection), and inspect wider outcomes that reconcile with authoritative database state without overselling.
+Success: a visitor can choose the demonstration event, set competing booking conditions, confirm a genuine concurrent reservation run, receive an authoritative personal outcome (including correct rejection), inspect wider booking results, and optionally open engineering evidence that reconciles with authoritative database state without overselling.
 
 Application technology direction: TypeScript, React, and Node.js.
 
@@ -29,7 +29,7 @@ Surround a user’s reservation with constrained, repeatable competing demand so
 
 ### Outcome inspection
 
-Reveal personal outcome, wider experiment outcomes, and engineering evidence that distinguishes expected availability rejections from unexpected errors and correctness violations, including reconciliation of reservation counts, allocated ticket quantities, and remaining inventory against authoritative state.
+Reveal personal outcome and wider booking results in approachable language, with optional expandable engineering evidence. Distinguish expected availability rejections from unexpected errors and uncertain outcomes. Reconcile reservation counts, allocated ticket quantities, and remaining inventory against authoritative state. Outcome views remain associated with the experiment that produced them; ordinary navigation does not silently reset inventory.
 
 ## Boundaries
 
@@ -50,8 +50,9 @@ Reveal personal outcome, wider experiment outcomes, and engineering evidence tha
 - The interactive user’s reservation receives no preferential allocation treatment relative to competing generated demand.
 - Successful reservation *counts* and allocated *ticket quantities* are distinct measurements and must both reconcile with authoritative state alongside remaining inventory.
 - Expected availability-based rejections are not treated as application errors or correctness violations.
-- Console-displayed experiment outcomes and evidence must reflect genuine request processing and authoritative database reconciliation, not synthetic scores.
-- Concurrent console experiments run from known, repeatable initial conditions with isolation/reset sufficient for reproducible evidence.
+- Displayed booking outcomes and engineering evidence must reflect genuine request processing and authoritative database reconciliation, not synthetic scores.
+- Concurrent booking experiments run from known, repeatable initial conditions; reset to those conditions is explicit (e.g. starting another experience), not an implicit side effect of ordinary navigation.
+- Proposed booking conditions and historical conditions of a completed experiment must not be confused with current available inventory or authoritative completed outcomes.
 
 ## Authority / state
 

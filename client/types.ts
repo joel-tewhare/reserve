@@ -68,12 +68,3 @@ export type ExperimentResult = {
     unexpectedErrorCount: number
   }
 }
-
-export type ConsolePhase =
-  | 'loading'
-  | 'ready'
-  | 'confirming'
-  | 'personal'
-  | 'evidence'
-  | 'error'
-  | 'uncertain'

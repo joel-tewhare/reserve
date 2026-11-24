@@ -1,7 +1,7 @@
-import Console from './Console.tsx'
+import BookingExperience from './BookingExperience.tsx'
 
 function App() {
-  return <Console />
+  return <BookingExperience />
 }
 
 export default App

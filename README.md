@@ -12,17 +12,18 @@ npm run db:reset
 npm run dev
 ```
 
-- Console / client: http://localhost:5173
+- Booking experience / client: http://localhost:5173
 - API: http://localhost:3000
 
 Requires Docker for local PostgreSQL.
 
 ## What v1 demonstrates
 
+- Staged ticket booking journey (choose event → booking conditions → outcome), with optional engineering evidence
 - Immediate-final, all-or-nothing ticket allocation
 - Genuine competing reservation requests under constrained concurrent demand
 - Oversubscribed demand (ticket demand may exceed available inventory); scarcity is resolved by allocation, not by blocking the experiment
-- No preferential treatment for the interactive console user
+- No preferential treatment for the interactive booking request
 - Reconciliation of successful reservation counts, allocated ticket quantities, and remaining inventory against PostgreSQL
 - Honest uncertain/transport outcomes (not equated with authoritative allocation failure)
 
