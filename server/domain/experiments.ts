@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import {
   EXPERIMENT_LIMITS,
+  parseBookingPolicy,
   validateExperimentConfig,
 } from '../../shared/experiment-config.ts'
 import { pool } from '../db/pool.ts'
@@ -9,12 +10,13 @@ import { allocateReservation } from './allocation.ts'
 import { getEventInventory } from './inventory.ts'
 import { reconcileEvent, summariseOutcomes } from './reconcile.ts'
 import type {
+  BookingPolicy,
   ExperimentConfig,
   ExperimentRequestOutcome,
   RequesterKind,
 } from './types.ts'
 
-export { EXPERIMENT_LIMITS, validateExperimentConfig }
+export { EXPERIMENT_LIMITS, validateExperimentConfig, parseBookingPolicy }
 
 async function mapPool<T, R>(
   items: T[],
@@ -79,6 +81,15 @@ async function runOneAllocation(
   }
 }
 
+function shuffleJobs<T>(jobs: T[]): T[] {
+  const copy = [...jobs]
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[copy[i], copy[j]] = [copy[j], copy[i]]
+  }
+  return copy
+}
+
 export async function runConcurrentReservationExperiment(
   config: ExperimentConfig,
   options: { reset?: boolean; eventId?: string } = {},
@@ -86,6 +97,13 @@ export async function runConcurrentReservationExperiment(
   const validationError = validateExperimentConfig(config)
   if (validationError) {
     throw new Error(validationError)
+  }
+
+  const bookingPolicy: BookingPolicy =
+    parseBookingPolicy(config.bookingPolicy) ?? 'standard'
+  const normalisedConfig: ExperimentConfig = {
+    ...config,
+    bookingPolicy,
   }
 
   const eventId = options.eventId ?? DEMO_EVENT_ID
@@ -102,36 +120,55 @@ export async function runConcurrentReservationExperiment(
   await pool.query(
     `
       INSERT INTO experiment_runs
-        (id, event_id, user_quantity, competing_requests, concurrency)
-      VALUES ($1, $2, $3, $4, $5)
+        (id, event_id, user_quantity, competing_requests, concurrency, booking_policy)
+      VALUES ($1, $2, $3, $4, $5, $6)
     `,
     [
       experimentRunId,
       eventId,
-      config.userQuantity,
-      config.competingRequests,
-      config.concurrency,
+      normalisedConfig.userQuantity,
+      normalisedConfig.competingRequests,
+      normalisedConfig.concurrency,
+      bookingPolicy,
     ],
   )
 
   type Job = { kind: RequesterKind; quantity: number }
-  const jobs: Job[] = [
-    { kind: 'interactive', quantity: config.userQuantity },
-    ...Array.from({ length: config.competingRequests }, () => ({
+  const interactiveJob: Job = {
+    kind: 'interactive',
+    quantity: normalisedConfig.userQuantity,
+  }
+  const competitorJobs: Job[] = Array.from(
+    { length: normalisedConfig.competingRequests },
+    () => ({
       kind: 'generated' as const,
       quantity: 1,
-    })),
-  ]
-
-  // Shuffle so the interactive request is not preferentially ordered.
-  for (let i = jobs.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[jobs[i], jobs[j]] = [jobs[j], jobs[i]]
-  }
-
-  const outcomes = await mapPool(jobs, config.concurrency, (job) =>
-    runOneAllocation(eventId, job.quantity, job.kind, experimentRunId),
+    }),
   )
+
+  let outcomes: ExperimentRequestOutcome[]
+
+  if (bookingPolicy === 'vip') {
+    // VIP-first: interactive allocation completes before competitors are admitted.
+    const personalOutcome = await runOneAllocation(
+      eventId,
+      interactiveJob.quantity,
+      interactiveJob.kind,
+      experimentRunId,
+    )
+    const competitorOutcomes =
+      competitorJobs.length === 0
+        ? []
+        : await mapPool(competitorJobs, normalisedConfig.concurrency, (job) =>
+            runOneAllocation(eventId, job.quantity, job.kind, experimentRunId),
+          )
+    outcomes = [personalOutcome, ...competitorOutcomes]
+  } else {
+    const jobs = shuffleJobs([interactiveJob, ...competitorJobs])
+    outcomes = await mapPool(jobs, normalisedConfig.concurrency, (job) =>
+      runOneAllocation(eventId, job.quantity, job.kind, experimentRunId),
+    )
+  }
 
   const personalOutcome =
     outcomes.find((outcome) => outcome.kind === 'interactive') ?? null
@@ -144,7 +181,7 @@ export async function runConcurrentReservationExperiment(
 
   return {
     experimentRunId,
-    config,
+    config: normalisedConfig,
     inventoryBefore,
     inventoryAfter,
     personalOutcome,

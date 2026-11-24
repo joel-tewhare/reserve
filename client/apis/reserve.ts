@@ -1,5 +1,6 @@
 import request from 'superagent'
 import type {
+  BookingPolicy,
   EventInventory,
   ExperimentResult,
   ExperimentLimits,
@@ -26,6 +27,7 @@ export async function runExperiment(input: {
   userQuantity: number
   competingRequests: number
   concurrency: number
+  bookingPolicy: BookingPolicy
   reset?: boolean
 }): Promise<ExperimentResult> {
   const response = await request.post(`${rootURL}/experiments/runs`).send(input)

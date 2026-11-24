@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { StatusCodes } from 'http-status-codes'
 import {
   EXPERIMENT_LIMITS,
+  parseBookingPolicy,
   runConcurrentReservationExperiment,
   validateExperimentConfig,
 } from '../domain/experiments.ts'
@@ -15,10 +16,19 @@ router.get('/limits', (_req, res) => {
 
 router.post('/runs', async (req, res, next) => {
   try {
+    const bookingPolicy = parseBookingPolicy(req.body?.bookingPolicy)
+    if (bookingPolicy === null) {
+      res.status(StatusCodes.BAD_REQUEST).json({
+        message: 'Booking policy must be standard or vip.',
+      })
+      return
+    }
+
     const config: ExperimentConfig = {
       userQuantity: Number(req.body?.userQuantity),
       competingRequests: Number(req.body?.competingRequests),
       concurrency: Number(req.body?.concurrency),
+      bookingPolicy,
     }
 
     const validationError = validateExperimentConfig(config)

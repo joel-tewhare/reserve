@@ -104,6 +104,46 @@ body {
   font-size: clamp(1.9rem, 4vw, 2.6rem);
 }
 
+.panel__header--with-vip {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.25rem;
+  align-items: flex-start;
+}
+
+.panel__header--with-vip .lede {
+  margin-bottom: 0;
+}
+
+.vip-toggle {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  max-width: 14rem;
+  border: 1px solid var(--line);
+  background: #fffdf8;
+  padding: 0.75rem 0.85rem;
+  cursor: pointer;
+}
+
+.vip-toggle__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.vip-toggle input {
+  margin-top: 0.15rem;
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.vip-toggle--disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .eyebrow {
   margin: 0 0 0.45rem;
   text-transform: uppercase;
@@ -381,6 +421,15 @@ body {
 @media (max-width: 640px) {
   .progress ol {
     grid-template-columns: 1fr;
+  }
+
+  .panel__header--with-vip {
+    flex-direction: column;
+  }
+
+  .vip-toggle {
+    max-width: none;
+    width: 100%;
   }
 
   .event-card {

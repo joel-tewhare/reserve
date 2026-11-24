@@ -5,10 +5,23 @@ export const EXPERIMENT_LIMITS = {
   maxTotalRequests: 260,
 } as const
 
+export type BookingPolicy = 'standard' | 'vip'
+
 export type ExperimentConfigInput = {
   userQuantity: number
   competingRequests: number
   concurrency: number
+  bookingPolicy?: BookingPolicy
+}
+
+export function parseBookingPolicy(value: unknown): BookingPolicy | null {
+  if (value === undefined || value === null || value === '') {
+    return 'standard'
+  }
+  if (value === 'standard' || value === 'vip') {
+    return value
+  }
+  return null
 }
 
 /** Resource-protection limits only. Demand may exceed available inventory. */
@@ -58,6 +71,13 @@ export function getExperimentConfigErrors(
     errors.push(
       `Total requests (you + competitors) must be at most ${EXPERIMENT_LIMITS.maxTotalRequests}.`,
     )
+  }
+
+  if (config.bookingPolicy !== undefined) {
+    const policy = parseBookingPolicy(config.bookingPolicy)
+    if (policy === null) {
+      errors.push('Booking policy must be standard or vip.')
+    }
   }
 
   return errors

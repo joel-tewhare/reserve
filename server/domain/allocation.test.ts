@@ -117,16 +117,18 @@ describe('reservation allocation against PostgreSQL', () => {
     ).toBe(DEMO_EVENT_CAPACITY)
   })
 
-  it('runs a constrained concurrent experiment without preferential interactive treatment mechanics', async () => {
+  it('runs a standard experiment without preferential interactive treatment mechanics', async () => {
     const result = await runConcurrentReservationExperiment(
       {
         userQuantity: 2,
         competingRequests: 80,
         concurrency: 20,
+        bookingPolicy: 'standard',
       },
       { reset: true },
     )
 
+    expect(result.config.bookingPolicy).toBe('standard')
     expect(result.correctness.noOversell).toBe(true)
     expect(result.correctness.balances).toBe(true)
     expect(result.summary.allocatedTicketQuantity).toBeLessThanOrEqual(
@@ -150,6 +152,7 @@ describe('reservation allocation against PostgreSQL', () => {
         userQuantity,
         competingRequests,
         concurrency: 20,
+        bookingPolicy: 'standard',
       },
       { reset: true },
     )
@@ -166,5 +169,63 @@ describe('reservation allocation against PostgreSQL', () => {
         result.reconciliation.remainingInventory,
     ).toBe(DEMO_EVENT_CAPACITY)
   })
+
+  it('gives VIP first access before competitors while remaining subject to inventory', async () => {
+    const result = await runConcurrentReservationExperiment(
+      {
+        userQuantity: 10,
+        competingRequests: 120,
+        concurrency: 20,
+        bookingPolicy: 'vip',
+      },
+      { reset: true },
+    )
+
+    expect(result.config.bookingPolicy).toBe('vip')
+    expect(result.personalOutcome?.status).toBe('allocated')
+    if (result.personalOutcome?.status === 'allocated') {
+      expect(result.personalOutcome.quantity).toBe(10)
+    }
+    expect(result.summary.allocatedTicketQuantity).toBe(DEMO_EVENT_CAPACITY)
+    expect(result.summary.availabilityRejectionCount).toBeGreaterThan(0)
+    expect(result.correctness.noOversell).toBe(true)
+    expect(result.correctness.balances).toBe(true)
+
+    const stored = await pool.query<{ booking_policy: string }>(
+      'SELECT booking_policy FROM experiment_runs WHERE id = $1',
+      [result.experimentRunId],
+    )
+    expect(stored.rows[0]?.booking_policy).toBe('vip')
+  })
+
+  it('allows VIP availability rejection without blocking competitors', async () => {
+    const prior = await allocateReservation(DEMO_EVENT_ID, 95, 'generated')
+    expect(prior.status).toBe('allocated')
+
+    const result = await runConcurrentReservationExperiment(
+      {
+        userQuantity: 10,
+        competingRequests: 5,
+        concurrency: 5,
+        bookingPolicy: 'vip',
+      },
+      { reset: false },
+    )
+
+    expect(result.personalOutcome?.status).toBe('rejected')
+    if (result.personalOutcome?.status === 'rejected') {
+      expect(result.personalOutcome.reason).toBe('insufficient_inventory')
+    }
+    expect(result.summary.successfulReservationCount).toBe(5)
+    expect(result.summary.allocatedTicketQuantity).toBe(5)
+    expect(result.correctness.noOversell).toBe(true)
+
+    const inventory = await getEventInventory()
+    expect(inventory?.allocatedTickets).toBe(DEMO_EVENT_CAPACITY)
+    expect(inventory?.availableTickets).toBe(0)
+  })
 })
+
+
+
 

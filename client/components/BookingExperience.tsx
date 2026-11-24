@@ -11,6 +11,7 @@ import {
   runExperiment,
 } from '../apis/reserve.ts'
 import type {
+  BookingPolicy,
   EventInventory,
   ExperimentLimits,
   ExperimentResult,
@@ -30,6 +31,7 @@ export default function BookingExperience() {
   const [userQuantity, setUserQuantity] = useState(1)
   const [competingRequests, setCompetingRequests] = useState(20)
   const [concurrency, setConcurrency] = useState(10)
+  const [vipEnabled, setVipEnabled] = useState(false)
   const [completedRun, setCompletedRun] = useState<ExperimentResult | null>(null)
   const [confirming, setConfirming] = useState(false)
   const [restarting, setRestarting] = useState(false)
@@ -89,10 +91,12 @@ export default function BookingExperience() {
     setRestartError(null)
 
     try {
+      const bookingPolicy: BookingPolicy = vipEnabled ? 'vip' : 'standard'
       const experimentResult = await runExperiment({
         userQuantity,
         competingRequests,
         concurrency,
+        bookingPolicy,
         reset: true,
       })
       setCompletedRun(experimentResult)
@@ -135,6 +139,7 @@ export default function BookingExperience() {
       setUserQuantity(1)
       setCompetingRequests(20)
       setConcurrency(10)
+      setVipEnabled(false)
       setStage('event')
     } catch {
       setRestartError(
@@ -176,6 +181,7 @@ export default function BookingExperience() {
           userQuantity={userQuantity}
           competingRequests={competingRequests}
           concurrency={concurrency}
+          vipEnabled={vipEnabled}
           ticketDemand={ticketDemand}
           oversubscribed={oversubscribed}
           configValid={configValid}
@@ -184,6 +190,7 @@ export default function BookingExperience() {
           onUserQuantity={setUserQuantity}
           onCompetingRequests={setCompetingRequests}
           onConcurrency={setConcurrency}
+          onVipEnabled={setVipEnabled}
           onBack={() => {
             if (busy) return
             setStage('event')
@@ -269,6 +276,7 @@ function StageConditions({
   userQuantity,
   competingRequests,
   concurrency,
+  vipEnabled,
   ticketDemand,
   oversubscribed,
   configValid,
@@ -277,6 +285,7 @@ function StageConditions({
   onUserQuantity,
   onCompetingRequests,
   onConcurrency,
+  onVipEnabled,
   onBack,
   onConfirm,
 }: {
@@ -285,6 +294,7 @@ function StageConditions({
   userQuantity: number
   competingRequests: number
   concurrency: number
+  vipEnabled: boolean
   ticketDemand: number
   oversubscribed: boolean
   configValid: boolean
@@ -293,18 +303,33 @@ function StageConditions({
   onUserQuantity: (value: number) => void
   onCompetingRequests: (value: number) => void
   onConcurrency: (value: number) => void
+  onVipEnabled: (value: boolean) => void
   onBack: () => void
   onConfirm: () => void
 }) {
   return (
     <section className="panel">
-      <header className="panel__header">
-        <p className="eyebrow">{event.name}</p>
-        <h1>Set your booking conditions</h1>
-        <p className="lede">
-          {event.availableTickets} ticket{event.availableTickets === 1 ? '' : 's'}{' '}
-          available right now.
-        </p>
+      <header className="panel__header panel__header--with-vip">
+        <div>
+          <p className="eyebrow">{event.name}</p>
+          <h1>Set your booking conditions</h1>
+          <p className="lede">
+            {event.availableTickets} ticket
+            {event.availableTickets === 1 ? '' : 's'} available right now.
+          </p>
+        </div>
+        <label className={`vip-toggle${confirming ? ' vip-toggle--disabled' : ''}`}>
+          <span className="vip-toggle__text">
+            <strong>VIP</strong>
+            <span className="muted">Enable VIP to get priority access to tickets.</span>
+          </span>
+          <input
+            type="checkbox"
+            checked={vipEnabled}
+            disabled={confirming}
+            onChange={(e) => onVipEnabled(e.target.checked)}
+          />
+        </label>
       </header>
 
       <div className="form-stack">
@@ -358,12 +383,16 @@ function StageConditions({
           other {competingRequests === 1 ? 'person tries' : 'people try'} for one
           each — <strong>{ticketDemand}</strong> tickets demanded against{' '}
           <strong>{event.availableTickets}</strong> available, with concurrency{' '}
-          <strong>{concurrency}</strong>.
+          <strong>{concurrency}</strong>
+          {vipEnabled
+            ? '. VIP is on: your booking gets first access before others compete.'
+            : '. Standard booking: you compete alongside everyone else.'}
         </p>
         {oversubscribed && configValid && (
           <p>
             That is more demand than tickets. Not everyone will get tickets — and
-            that is a valid booking condition here.
+            that is a valid booking condition here
+            {vipEnabled ? ', even with VIP priority' : ''}.
           </p>
         )}
         {!configValid && (
@@ -444,10 +473,17 @@ function StageOutcome({
           <PersonalOutcome
             outcome={completedRun.personalOutcome}
             eventName={eventName}
+            bookingPolicy={completedRun.config.bookingPolicy}
           />
 
           <div className="outcome-block">
             <h2>What happened to everyone else?</h2>
+            {completedRun.config.bookingPolicy === 'vip' && (
+              <p className="muted">
+                This run used VIP priority: your booking was attempted before
+                competing requests were admitted.
+              </p>
+            )}
             <dl className="result-grid">
               <ResultStat
                 label="People trying to book"
@@ -517,14 +553,22 @@ function StageOutcome({
 function PersonalOutcome({
   outcome,
   eventName,
+  bookingPolicy,
 }: {
   outcome: PersonalOutcome | null
   eventName: string
+  bookingPolicy: BookingPolicy
 }) {
+  const vipNote =
+    bookingPolicy === 'vip' ? (
+      <p className="muted">VIP priority was applied for this booking.</p>
+    ) : null
+
   if (!outcome) {
     return (
       <div className="callout">
         <p>Your personal booking result is unavailable for this run.</p>
+        {vipNote}
       </div>
     )
   }
@@ -537,6 +581,7 @@ function PersonalOutcome({
           You successfully secured {outcome.quantity} ticket
           {outcome.quantity === 1 ? '' : 's'} to {eventName}.
         </p>
+        {vipNote}
       </div>
     )
   }
@@ -547,9 +592,12 @@ function PersonalOutcome({
         <h2>You missed out this time.</h2>
         <p>
           {outcome.reason === 'insufficient_inventory'
-            ? 'There weren’t enough tickets remaining to fulfil your booking. No tickets were allocated to you.'
+            ? bookingPolicy === 'vip'
+              ? 'Even with VIP priority, there weren’t enough tickets remaining to fulfil your booking. No tickets were allocated to you.'
+              : 'There weren’t enough tickets remaining to fulfil your booking. No tickets were allocated to you.'
             : 'Your booking could not be fulfilled because the ticket quantity was not valid. No tickets were allocated to you.'}
         </p>
+        {vipNote}
       </div>
     )
   }
@@ -607,6 +655,10 @@ function EngineeringEvidence({ run }: { run: ExperimentResult }) {
         <div>
           <dt>Concurrency (this run)</dt>
           <dd>{run.config.concurrency}</dd>
+        </div>
+        <div>
+          <dt>Booking policy (this run)</dt>
+          <dd>{run.config.bookingPolicy === 'vip' ? 'vip (VIP-first)' : 'standard'}</dd>
         </div>
         <div>
           <dt>Available before this run</dt>

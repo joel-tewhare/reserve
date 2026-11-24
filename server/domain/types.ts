@@ -1,5 +1,7 @@
 export type RequesterKind = 'interactive' | 'generated'
 
+export type BookingPolicy = 'standard' | 'vip'
+
 export type AllocationOutcome =
   | {
       status: 'allocated'
@@ -30,6 +32,7 @@ export type ExperimentConfig = {
   userQuantity: number
   competingRequests: number
   concurrency: number
+  bookingPolicy: BookingPolicy
 }
 
 export type ExperimentRequestOutcome =
