@@ -1,5 +1,5 @@
 {
-  "name": "boilerplate-fullstack-auth",
+  "name": "reserve",
   "type": "module",
   "version": "2.0.0",
   "main": "server/index.js",
