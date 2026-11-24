@@ -1,4 +1,8 @@
 import { randomUUID } from 'node:crypto'
+import {
+  EXPERIMENT_LIMITS,
+  validateExperimentConfig,
+} from '../../shared/experiment-config.ts'
 import { pool } from '../db/pool.ts'
 import { DEMO_EVENT_ID, resetDemoEvent } from '../db/seed.ts'
 import { allocateReservation } from './allocation.ts'
@@ -10,42 +14,7 @@ import type {
   RequesterKind,
 } from './types.ts'
 
-export const EXPERIMENT_LIMITS = {
-  maxUserQuantity: 10,
-  maxCompetingRequests: 100,
-  maxConcurrency: 25,
-  maxTotalRequests: 120,
-} as const
-
-export function validateExperimentConfig(config: ExperimentConfig): string | null {
-  const { userQuantity, competingRequests, concurrency } = config
-
-  if (!Number.isInteger(userQuantity) || userQuantity < 1) {
-    return 'userQuantity must be an integer >= 1'
-  }
-  if (userQuantity > EXPERIMENT_LIMITS.maxUserQuantity) {
-    return `userQuantity must be <= ${EXPERIMENT_LIMITS.maxUserQuantity}`
-  }
-  if (!Number.isInteger(competingRequests) || competingRequests < 0) {
-    return 'competingRequests must be an integer >= 0'
-  }
-  if (competingRequests > EXPERIMENT_LIMITS.maxCompetingRequests) {
-    return `competingRequests must be <= ${EXPERIMENT_LIMITS.maxCompetingRequests}`
-  }
-  if (!Number.isInteger(concurrency) || concurrency < 1) {
-    return 'concurrency must be an integer >= 1'
-  }
-  if (concurrency > EXPERIMENT_LIMITS.maxConcurrency) {
-    return `concurrency must be <= ${EXPERIMENT_LIMITS.maxConcurrency}`
-  }
-
-  const totalRequests = competingRequests + 1
-  if (totalRequests > EXPERIMENT_LIMITS.maxTotalRequests) {
-    return `total requests must be <= ${EXPERIMENT_LIMITS.maxTotalRequests}`
-  }
-
-  return null
-}
+export { EXPERIMENT_LIMITS, validateExperimentConfig }
 
 async function mapPool<T, R>(
   items: T[],

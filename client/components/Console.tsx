@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
+  EXPERIMENT_LIMITS,
+  getExperimentConfigErrors,
+  projectedTicketDemand,
+} from '../../shared/experiment-config.ts'
+import {
   fetchDemoEvent,
   fetchExperimentLimits,
   resetDemoEvent,
@@ -12,12 +17,7 @@ import type {
   ExperimentResult,
 } from '../types.ts'
 
-const DEFAULT_LIMITS: ExperimentLimits = {
-  maxUserQuantity: 10,
-  maxCompetingRequests: 100,
-  maxConcurrency: 25,
-  maxTotalRequests: 120,
-}
+const DEFAULT_LIMITS: ExperimentLimits = { ...EXPERIMENT_LIMITS }
 
 export default function Console() {
   const [phase, setPhase] = useState<ConsolePhase>('loading')
@@ -58,17 +58,19 @@ export default function Console() {
   }, [])
 
   const totalRequests = competingRequests + 1
-  const configValid = useMemo(() => {
-    return (
-      userQuantity >= 1 &&
-      userQuantity <= limits.maxUserQuantity &&
-      competingRequests >= 0 &&
-      competingRequests <= limits.maxCompetingRequests &&
-      concurrency >= 1 &&
-      concurrency <= limits.maxConcurrency &&
-      totalRequests <= limits.maxTotalRequests
-    )
-  }, [userQuantity, competingRequests, concurrency, limits, totalRequests])
+  const ticketDemand = projectedTicketDemand(userQuantity, competingRequests)
+  const configErrors = useMemo(
+    () =>
+      getExperimentConfigErrors({
+        userQuantity,
+        competingRequests,
+        concurrency,
+      }),
+    [userQuantity, competingRequests, concurrency],
+  )
+  const configValid = configErrors.length === 0
+  const oversubscribed =
+    event != null && ticketDemand > event.availableTickets
 
   async function handleReset() {
     setErrorMessage(null)
@@ -202,17 +204,36 @@ export default function Console() {
             Your request for <strong>{userQuantity}</strong> ticket
             {userQuantity === 1 ? '' : 's'} will compete with{' '}
             <strong>{competingRequests}</strong> generated one-ticket requests
-            (total <strong>{totalRequests}</strong>) at concurrency{' '}
+            (total <strong>{totalRequests}</strong> requests,{' '}
+            <strong>{ticketDemand}</strong> tickets demanded) at concurrency{' '}
             <strong>{concurrency}</strong>.
+          </p>
+          {oversubscribed && configValid && (
+            <p>
+              Demand exceeds available inventory. That is intentional: scarcity is
+              resolved by authoritative allocation and availability rejection, not
+              by blocking the experiment.
+            </p>
+          )}
+          <p className="muted">
+            Supported ranges: tickets 1–{limits.maxUserQuantity}, competing
+            requests 0–{limits.maxCompetingRequests}, concurrency 1–
+            {limits.maxConcurrency}, total requests ≤ {limits.maxTotalRequests}.
+            These are resource-protection limits only; they are independent of
+            available inventory.
           </p>
           <p className="muted">
             Allocation is all-or-nothing. A personal rejection can be a correct
             system outcome under demand.
           </p>
           {!configValid && (
-            <p className="warn">
-              Configuration exceeds constrained experiment limits and cannot run.
-            </p>
+            <ul className="warn-list">
+              {configErrors.map((error) => (
+                <li key={error} className="warn">
+                  {error}
+                </li>
+              ))}
+            </ul>
           )}
         </div>
 

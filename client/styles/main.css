@@ -172,6 +172,15 @@ body {
   color: var(--warn);
 }
 
+.warn-list {
+  margin: 0.55rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.warn-list li {
+  margin: 0.2rem 0;
+}
+
 .mono {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 0.85rem;

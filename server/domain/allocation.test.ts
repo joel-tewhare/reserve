@@ -138,4 +138,33 @@ describe('reservation allocation against PostgreSQL', () => {
     ).toBe(DEMO_EVENT_CAPACITY)
     expect(result.personalOutcome).not.toBeNull()
   })
+
+  it('allows oversubscribed demand and resolves scarcity via allocation', async () => {
+    const userQuantity = 10
+    const competingRequests = 150
+    const ticketDemand = userQuantity + competingRequests
+    expect(ticketDemand).toBeGreaterThan(DEMO_EVENT_CAPACITY)
+
+    const result = await runConcurrentReservationExperiment(
+      {
+        userQuantity,
+        competingRequests,
+        concurrency: 20,
+      },
+      { reset: true },
+    )
+
+    expect(result.summary.requestCount).toBe(competingRequests + 1)
+    expect(result.summary.allocatedTicketQuantity).toBeLessThanOrEqual(
+      DEMO_EVENT_CAPACITY,
+    )
+    expect(result.summary.availabilityRejectionCount).toBeGreaterThan(0)
+    expect(result.correctness.noOversell).toBe(true)
+    expect(result.correctness.balances).toBe(true)
+    expect(
+      result.reconciliation.allocatedTicketQuantity +
+        result.reconciliation.remainingInventory,
+    ).toBe(DEMO_EVENT_CAPACITY)
+  })
 })
+

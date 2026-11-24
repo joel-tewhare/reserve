@@ -21,9 +21,12 @@ Requires Docker for local PostgreSQL.
 
 - Immediate-final, all-or-nothing ticket allocation
 - Genuine competing reservation requests under constrained concurrent demand
+- Oversubscribed demand (ticket demand may exceed available inventory); scarcity is resolved by allocation, not by blocking the experiment
 - No preferential treatment for the interactive console user
 - Reconciliation of successful reservation counts, allocated ticket quantities, and remaining inventory against PostgreSQL
 - Honest uncertain/transport outcomes (not equated with authoritative allocation failure)
+
+Experiment resource limits (independent of inventory): personal tickets ≤ 10, competing requests ≤ 250, concurrency ≤ 25, total requests ≤ 260.
 
 ## Proof
 
